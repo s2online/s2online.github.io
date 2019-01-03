@@ -1211,15 +1211,23 @@ public class Scratch extends Sprite {
 
 	public function dlFrom2():void {
 		function reload():void {
+			function reshow():void {
+				dlFrom2();
+			}
 			var val = d.getField('Project ID');
-			if (Number(val) == val) {
+			if (val.length && Number(val) == val) {
 				externalCall('JSloadID', null, val);
 			} else {
-				DialogBox.notify('Error', 'That is not a valid project ID!');
+				DialogBox.notify('Error', 'That is not a valid project ID!', stage, false, reshow);
 			}
 		}
 		var d:DialogBox = new DialogBox(reload);
 		d.addTitle('Download 2.0 Project');
+		d.addText(
+			"This mod of scratch-flash downloads Scratch 2.0 (sb2) projects\nfrom scratch.mit.edu and loads them into the editor.\n\n" +
+			"This tool was created so that it could be easy to run existing\nprojects in Scratch 2.0. It cannot upload or share projects.\n\n" +
+			"s2online was made by towerofnix (_nix) and uses code from\nMegaApuTurkUltra's Scratch Project Backup tool on CodePen."
+		);
 		d.addField('Project ID', 120);
 		d.addAcceptCancelButtons('Download and Reload');
 		d.showOnStage(stage, true);
