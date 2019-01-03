@@ -226,22 +226,33 @@ public class Scratch extends Sprite {
 
 	protected function handleStartupParameters():void {
 		setupExternalInterface(false);
+		externalCall('JSwillDownload', function (will:Boolean):void {
+			if (!will) {
+				dlFrom2();
+			}
+		});
 		jsEditorReady();
 	}
 
 	protected function setupExternalInterface(oldWebsitePlayer:Boolean):void {
 		if (!jsEnabled) return;
 
+		Security.allowDomain('*');
 		addExternalCallback('ASloadExtension', extensionManager.loadRawExtension);
 		addExternalCallback('ASextensionCallDone', extensionManager.callCompleted);
 		addExternalCallback('ASextensionReporterDone', extensionManager.reporterCompleted);
 		addExternalCallback('AScreateNewProject', createNewProjectScratchX);
+		addExternalCallback('ASopenProjectFromData', openProjectFromData);
 
 		if (isExtensionDevMode) {
 			addExternalCallback('ASloadGithubURL', loadGithubURL);
 			addExternalCallback('ASloadBase64SBX', loadBase64SBX);
 			addExternalCallback('ASsetModalOverlay', setModalOverlay);
 		}
+	}
+
+	private function openProjectFromData(data:String):void {
+		runtime.installProjectFromData(Base64Encoder.decode(data));
 	}
 
 	protected function jsEditorReady():void {
@@ -388,7 +399,7 @@ public class Scratch extends Sprite {
 	}
 
 	protected function startInEditMode():Boolean {
-		return isOffline || isExtensionDevMode;
+		return true;
 	}
 
 	public function getMediaLibrary(type:String, whenDone:Function):MediaLibrary {
@@ -1066,6 +1077,8 @@ public class Scratch extends Sprite {
 	}
 
 	protected function addFileMenuItems(b:*, m:Menu):void {
+		m.addItem('Download project from scratch.mit.edu', dlFrom2);
+		m.addLine();
 		m.addItem('Load Project', runtime.selectProjectFile);
 		m.addItem('Save Project', exportProjectToFile);
 		if (runtime.recording || runtime.ready==ReadyLabel.COUNTDOWN || runtime.ready==ReadyLabel.READY) {
@@ -1096,7 +1109,7 @@ public class Scratch extends Sprite {
 				}
 
 				var d:DialogBox = new DialogBox(loadJSExtension);
-				d.addTitle('Load Javascript Scratch Extension');
+				d.addTitle('Load Javascrip Scratch Extension');
 				d.addField('URL', 120);
 				d.addAcceptCancelButtons('Load');
 				d.showOnStage(app.stage);
@@ -1194,6 +1207,22 @@ public class Scratch extends Sprite {
 		d.addButton('Don\'t save', proceedWithoutSaving);
 		d.addButton('Cancel', cancel);
 		d.showOnStage(stage);
+	}
+
+	public function dlFrom2():void {
+		function reload():void {
+			var val = d.getField('Project ID');
+			if (Number(val) == val) {
+				externalCall('JSloadID', null, val);
+			} else {
+				DialogBox.notify('Error', 'That is not a valid project ID!');
+			}
+		}
+		var d:DialogBox = new DialogBox(reload);
+		d.addTitle('Download 2.0 Project');
+		d.addField('Project ID', 120);
+		d.addAcceptCancelButtons('Download and Reload');
+		d.showOnStage(stage, true);
 	}
 
 	public function exportProjectToFile(fromJS:Boolean = false, saveCallback:Function = null):void {

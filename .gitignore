@@ -5,7 +5,6 @@
 /bin/
 /bin-debug/
 /bin-release/
-/build/
 .DS_Store
 .actionScriptProperties
 .flexLibProperties
