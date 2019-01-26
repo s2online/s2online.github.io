@@ -23,23 +23,38 @@ function startDownload(projectId){
     setProgress(0);
     jszip = new JSZip();
     jszip.comment = "Created with MegaApuTurkUltra's Project Downloader";
-    fetch("https://cdn.projects.scratch.mit.edu/internalapi/project/"+projectId+"/get/").then(data=>data.json()).then(function(data){
-        // FIX 2018-07-16
-        if (typeof data == "string") {
-            data = JSON.parse(data);
+    fetch("https://projects.scratch.mit.edu/" + projectId).then(response => {
+        if (response.headers.get('content-type') === 'application/json') {
+            return response.json().then(data => {
+                setProgress(10);
+                logMessage("Loaded JSON");
+                project = data;
+                processSoundsAndCostumes(project);
+                if(project.hasOwnProperty("children")){
+                    for(child in project.children){
+                        processSoundsAndCostumes(project.children[child]);
+                    }
+                }
+                logMessage("Found "+totalAssets+" assets");
+                jszip.file("project.json", JSON.stringify(project));
+                downloadCostume();
+            });
+        } else {
+            return response.blob().then(blob => {
+                return new Promise((resolve, reject) => {
+                    setProgress(10);
+                    logMessage("Loaded .sb1(?)");
+                    var reader = new FileReader();
+                    reader.onerror = reject;
+                    reader.onload = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            }).then(content => {
+                logMessage("Loading...");
+                window.gotZipBase64(content.split(',')[1]);
+                psuccess();
+            });
         }
-        setProgress(10);
-        logMessage("Loaded JSON");
-        project = data;
-        processSoundsAndCostumes(project);
-        if(project.hasOwnProperty("children")){
-            for(child in project.children){
-                processSoundsAndCostumes(project.children[child]);
-            }
-        }
-        logMessage("Found "+totalAssets+" assets");
-        jszip.file("project.json", JSON.stringify(project));
-        downloadCostume();
     }).catch(perror);
 }
 
@@ -86,14 +101,6 @@ function downloadSound(){
         logMessage("Loading...");
         window.gotZipBase64(content);
         logMessage("Complete");
-        var content2 = jszip.generate({type:"blob"});
-        /*
-        var a = document.createElement("a");
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.href = URL.createObjectURL(content2);
-        a.click();
-        */
         psuccess();
     }
 }
@@ -119,8 +126,9 @@ function processSoundsAndCostumes(node){
     }
 }
 
-function perror(){
-    alert("Failed to download. Perhaps you used a bad project ID?\nRemember that this tool only supports sb2 projects.\n(It won't work if the project has been modified and saved in 3.0!)");
+function perror(err){
+    console.error(err);
+    alert("Failed to download. Perhaps you used a bad project ID?\nRemember that this tool only supports sb2 and sb1 projects.\n(It won't work if the project has been modified and saved in 3.0!)");
     logMessage("Download error");
     setProgress(100);
     $("#progress").addClass("error");
