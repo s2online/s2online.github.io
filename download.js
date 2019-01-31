@@ -25,37 +25,54 @@ function startDownload(projectId){
     jszip.comment = "Created with MegaApuTurkUltra's Project Downloader";
     fetch("https://projects.scratch.mit.edu/" + projectId).then(response => {
         if (response.headers.get('content-type') === 'application/json') {
-            return response.json().then(data => {
-                setProgress(10);
-                logMessage("Loaded JSON");
-                project = data;
-                processSoundsAndCostumes(project);
-                if(project.hasOwnProperty("children")){
-                    for(child in project.children){
-                        processSoundsAndCostumes(project.children[child]);
-                    }
-                }
-                logMessage("Found "+totalAssets+" assets");
-                jszip.file("project.json", JSON.stringify(project));
-                downloadCostume();
-            });
+            return response.json().then(gotJSON);
         } else {
             return response.blob().then(blob => {
                 return new Promise((resolve, reject) => {
                     setProgress(10);
-                    logMessage("Loaded .sb1(?)");
                     var reader = new FileReader();
                     reader.onerror = reject;
                     reader.onload = () => resolve(reader.result);
                     reader.readAsDataURL(blob);
                 });
             }).then(content => {
-                logMessage("Loading...");
-                window.gotZipBase64(content.split(',')[1]);
-                psuccess();
+                var text = content.split(',')[1];
+                if (atob(text)[0] === '{') {
+                    logMessage("Loaded surprise .sb2(?).");
+                    // Surprise, it's JSON for some reason!
+                    gotJSON(JSON.parse(atob(text)));
+                } else {
+                    logMessage("Loaded .sb1.");
+                    // Otherwise it should be an sb1.
+                    window.gotZipBase64(content.split(',')[1]);
+                    psuccess();
+                }
             });
         }
     }).catch(perror);
+}
+
+function gotJSON(data){
+    if (data.meta && data.meta.semver && data.meta.semver[0] === '3') {
+        logMessage("It's an .sb3, we can't load it.");
+        setProgress(100);
+        alert("Sorry, that file was made or modified in Scratch 3.0, so we can't load it into 2.0.");
+        animError();
+        return;
+    }
+
+    setProgress(10);
+    logMessage("Loaded JSON");
+    project = data;
+    processSoundsAndCostumes(project);
+    if(project.hasOwnProperty("children")){
+        for(child in project.children){
+            processSoundsAndCostumes(project.children[child]);
+        }
+    }
+    logMessage("Found "+totalAssets+" assets");
+    jszip.file("project.json", JSON.stringify(project));
+    downloadCostume();
 }
 
 function downloadCostume(){
@@ -130,6 +147,10 @@ function perror(err){
     console.error(err);
     alert("Failed to download. Perhaps you used a bad project ID?\nRemember that this tool only supports sb2 and sb1 projects.\n(It won't work if the project has been modified and saved in 3.0!)");
     logMessage("Download error");
+    animError();
+}
+
+function animError() {
     setProgress(100);
     $("#progress").addClass("error");
     $("#progress").animate({opacity:0}, 1000, function(){
