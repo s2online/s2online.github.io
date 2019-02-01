@@ -25,7 +25,7 @@ function startDownload(projectId){
     jszip.comment = "Created with MegaApuTurkUltra's Project Downloader";
     fetch("https://projects.scratch.mit.edu/" + projectId).then(response => {
         if (response.headers.get('content-type') === 'application/json') {
-            return response.json().then(gotJSON);
+            return response.text().then(scratchParseJSON).then(gotJSON);
         } else {
             return response.blob().then(blob => {
                 return new Promise((resolve, reject) => {
@@ -40,7 +40,7 @@ function startDownload(projectId){
                 if (atob(text)[0] === '{') {
                     logMessage("Loaded surprise .sb2(?).");
                     // Surprise, it's JSON for some reason!
-                    gotJSON(JSON.parse(atob(text)));
+                    gotJSON(scratchParseJSON(atob(text)));
                 } else {
                     logMessage("Loaded .sb1.");
                     // Otherwise it should be an sb1.
