@@ -8,6 +8,7 @@ var soundsToDownload = [];
 var costumesToDownload = [];
 var totalAssets = 0;
 var completeAssets = 0;
+var textLayerIDCounter = 100000;
 
 function startDownload(projectId){
     $("#log").text("");
@@ -71,7 +72,6 @@ function gotJSON(data){
         }
     }
     logMessage("Found "+totalAssets+" assets");
-    jszip.file("project.json", JSON.stringify(project));
     downloadCostume();
 }
 
@@ -79,21 +79,42 @@ function downloadCostume(){
     if(costumesToDownload.length > 0){
         var current = costumesToDownload.pop();
         logMessage("Loading asset "+current.costumeName+" ("+completeAssets+"/"+totalAssets+")");
-        fetch("https://cdn.assets.scratch.mit.edu/internalapi/asset/"+current.baseLayerMD5+"/get/").then(data => data.blob()).then(blob => {
-            var reader = new FileReader();
-            reader.onload = () => {
-                var data = reader.result.split(',')[1];
-                var ext = current.baseLayerMD5.match(/\.[a-zA-Z0-9]+/)[0];
-                jszip.file(current.baseLayerID+ext, data, {base64: true});
-                completeAssets++;
-                setProgress(10+89*(completeAssets/totalAssets));
-                downloadCostume();
-            };
-            reader.readAsDataURL(blob);
-        });
+        // For some reason sb2 projects all seem to have textLayerID be -1...
+        // I'm not sure what the "right" way to deal with it is, but just setting it to a really
+        // high, otherwise-unused but unique value works.
+        current.textLayerID = getNewTextLayerID();
+        return Promise.all([
+            downloadCostumePart(current, current.baseLayerMD5, current.baseLayerID),
+            downloadCostumePart(current, current.textLayerMD5, current.textLayerID)
+        ]);
     } else {
         downloadSound();
     }
+}
+
+function getNewTextLayerID() {
+    textLayerIDCounter++;
+    return textLayerIDCounter;
+}
+
+function downloadCostumePart(current, md5, id) {
+    // No md5 passed - don't do anything. This is the case when textLayerMD5 is not present.
+    if (!md5) {
+        return;
+    }
+
+    return fetch("https://cdn.assets.scratch.mit.edu/internalapi/asset/"+md5+"/get/").then(data => data.blob()).then(blob => {
+        var reader = new FileReader();
+        reader.onload = () => {
+            var data = reader.result.split(',')[1];
+            var ext = md5.match(/\.[a-zA-Z0-9]+/)[0];
+            jszip.file(id+ext, data, {base64: true});
+            completeAssets++;
+            setProgress(10+89*(completeAssets/totalAssets));
+            downloadCostume();
+        };
+        reader.readAsDataURL(blob);
+    });
 }
 
 function downloadSound(){
@@ -113,6 +134,7 @@ function downloadSound(){
             reader.readAsDataURL(blob);
         });
     } else {
+        jszip.file("project.json", JSON.stringify(project));
         logMessage("Generating ZIP...");
         var content = jszip.generate({type:"base64"});
         logMessage("Loading...");
