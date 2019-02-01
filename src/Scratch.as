@@ -1240,9 +1240,7 @@ public class Scratch extends Sprite {
 			var defaultName:String = StringUtil.trim(projectName());
 			defaultName = ((defaultName.length > 0) ? defaultName : 'project') + projectType;
 			var zipData:ByteArray = projIO.encodeProjectAsZipFile(stagePane);
-			var file:FileReference = new FileReference();
-			file.addEventListener(Event.COMPLETE, fileSaved);
-			file.save(zipData, fixFileName(defaultName));
+			externalCall('JSdownloadSB2', null, Base64Encoder.encode(zipData), fixFileName(defaultName));
 		}
 
 		function fileSaved(e:Event):void {
