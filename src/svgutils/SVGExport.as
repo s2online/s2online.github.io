@@ -66,7 +66,7 @@ public class SVGExport {
 		XML.ignoreComments = false;
 		rootNode = new XML("<svg xmlns='http://www.w3.org/2000/svg' version='1.1' " +
 				"xmlns:xlink='http://www.w3.org/1999/xlink'>\n" +
-				"<!-- Exported by Scratch - http://scratch.mit.edu/ -->\n"+
+				"<!-- Exported by S2Online - s2online.github.io -->\n"+
 			"</svg>");
 		setSVGWidthAndHeight();
 		for each (var subEl:SVGElement in rootEl.subElements) {
