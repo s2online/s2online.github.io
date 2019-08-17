@@ -204,7 +204,7 @@ function scratchParseJSON(s) {
             case "n": return "\n";
             case "r": return "\r";
             case "t": return "\t";
-            case "u": return String.fromCharCode(int("0x" + src.nextString(4)));
+            case "u": return String.fromCharCode(Number("0x" + src.nextString(4)));
         }
         return ch;
     }
